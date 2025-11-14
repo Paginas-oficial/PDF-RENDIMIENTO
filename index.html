@@ -166,12 +166,10 @@
             font-weight: bold;
             background-color: #f9f9f9;
         }
-        /* Colores del encabezado principal */
         .th-inicio { background-color: #dc3545; color: white; }
         .th-proceso { background-color: #ffc107; color: #333; }
         .th-logro { background-color: #28a745; color: white; }
 
-        /* Estilo para la celda diagonal */
         .diag-header {
             position: relative;
             padding: 0;
@@ -179,7 +177,7 @@
             min-width: 140px;
             background-color: #f0f0f0;
         }
-        .diag-header::after { /* La línea diagonal */
+        .diag-header::after {
             content: "";
             position: absolute;
             top: 0;
@@ -208,7 +206,6 @@
             font-weight: bold;
         }
         
-        /* Colores para la fila C/B/A y las celdas de datos */
         .report-table thead tr:nth-child(2) th:nth-child(2),
         .report-table tbody td:nth-child(2) {
             background-color: #fddde0; /* Rojo claro */
@@ -478,7 +475,7 @@
         
 
         // ===================================================================
-        // === FUNCIÓN PDF MODIFICADA ===
+        // === FUNCIÓN PDF MODIFICADA (Márgenes más grandes) ===
         // ===================================================================
         /**
          * Función para descargar el PDF (Corregida para móviles)
@@ -491,10 +488,12 @@
             alert("Generando PDF... por favor espera un momento.");
 
             try {
-                // 1. Definir márgenes y ancho
-                const imgWidth = 190; // Ancho de la imagen en mm (A4 es 210mm)
-                const margin = 10;
+                // --- CAMBIOS AQUÍ ---
+                const imgWidth = 170; // Más pequeño = más margen (A4 es 210mm)
+                const sideMargin = (210 - imgWidth) / 2; // Centra (20mm de margen)
+                const verticalMargin = 15; // Espacio vertical entre elementos
                 let y_position = 25; // Posición Y inicial
+                // ---------------------
                 
                 // Título principal del PDF
                 doc.setFontSize(18);
@@ -506,8 +505,8 @@
                 const imgDataHeader = canvasHeader.toDataURL('image/png');
                 const headerHeight = (canvasHeader.height * imgWidth) / canvasHeader.width;
                 
-                doc.addImage(imgDataHeader, 'PNG', margin, y_position, imgWidth, headerHeight);
-                y_position += headerHeight + margin; // Mover Y hacia abajo
+                doc.addImage(imgDataHeader, 'PNG', sideMargin, y_position, imgWidth, headerHeight);
+                y_position += headerHeight + verticalMargin; // Mover Y hacia abajo
 
                 // --- 3. Capturar la Tabla ---
                 const table = document.getElementById('reportTableContainer');
@@ -515,8 +514,8 @@
                 const imgDataTable = canvasTable.toDataURL('image/png');
                 const tableHeight = (canvasTable.height * imgWidth) / canvasTable.width;
                 
-                doc.addImage(imgDataTable, 'PNG', margin, y_position, imgWidth, tableHeight);
-                y_position += tableHeight + margin; // Mover Y hacia abajo
+                doc.addImage(imgDataTable, 'PNG', sideMargin, y_position, imgWidth, tableHeight);
+                y_position += tableHeight + verticalMargin; // Mover Y hacia abajo
 
                 // --- 4. Capturar el Gráfico ---
                 const chart = document.getElementById('chartAgrupado');
@@ -525,13 +524,12 @@
                 const chartHeight = (canvasChart.height * imgWidth) / canvasChart.width;
 
                 // --- 5. Comprobar si cabe o añadir nueva página ---
-                // 297mm es el alto de A4. Si (posición actual + altura del gráfico) se pasa, añade página.
-                if (y_position + chartHeight > 297) { 
+                if (y_position + chartHeight > 297) { // 297mm es el alto de A4
                     doc.addPage();
                     y_position = 20; // Posición Y en la nueva página
                 }
 
-                doc.addImage(imgDataChart, 'PNG', margin, y_position, imgWidth, chartHeight);
+                doc.addImage(imgDataChart, 'PNG', sideMargin, y_position, imgWidth, chartHeight);
                 
                 // --- 6. Guardar ---
                 doc.save('reporte_rendimiento.pdf');
@@ -545,3 +543,4 @@
 
 </body>
 </html>
+
