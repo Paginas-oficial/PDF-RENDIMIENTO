@@ -49,7 +49,20 @@
             font-size: 16px;
             border: 1px solid #ccc;
             border-radius: 5px;
+            /* Apariencia nativa */
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-color: white;
         }
+        select {
+            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23007CAL%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-13%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2013l128%20127.9c3.6%203.6%207.8%205.4%2013%205.4s9.4-1.8%2013-5.4L287%2095.2c3.6-3.6%205.4-7.8%205.4-13%200-5-1.8-9.2-5.4-12.8z%22%2F%3E%3C%2Fsvg%3E');
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 0.65em auto;
+            padding-right: 2.5rem; /* Espacio para la flecha */
+        }
+        
         button {
             padding: 12px;
             width: 100%;
@@ -259,9 +272,15 @@
                 <label for="reportYear">Año del Reporte:</label>
                 <input type="number" id="reportYear" value="2025" min="2000">
 
-                <label for="gradoName">Grado:</label>
-                <input type="text" id="gradoName" placeholder="Ej: Segundo Grado">
-                
+                <label for="gradoSelect">Grado:</label>
+                <select id="gradoSelect">
+                    <option value="PRIMER GRADO">PRIMER GRADO</option>
+                    <option value="SEGUNDO GRADO" selected>SEGUNDO GRADO</option>
+                    <option value="TERCER GRADO">TERCER GRADO</option>
+                    <option value="CUARTO GRADO">CUARTO GRADO</option>
+                    <option value="QUINTO GRADO">QUINTO GRADO</option>
+                    <option value="SEXTO GRADO">SEXTO GRADO</option>
+                </select>
                 <label for="bimestreSelect">Bimestre:</label>
                 <select id="bimestreSelect">
                     <option value="PRIMER BIMESTRE">PRIMER BIMESTRE</option>
@@ -333,6 +352,7 @@
             ]
         };
 
+        // Configuración del gráfico
         const configAgrupado = {
             type: 'bar',
             data: chartData,
@@ -344,13 +364,25 @@
                         grace: 1 
                     }
                 },
-                plugins: { legend: { position: 'bottom' } }
+                // === CAMBIO: Desactivar la "burbuja" (tooltip) ===
+                plugins: { 
+                    legend: { position: 'bottom' },
+                    tooltip: {
+                        enabled: false // <-- AÑADIDO
+                    }
+                }
+                // ===============================================
             }
         };
 
+        /**
+         * Función para actualizar el texto del encabezado del reporte.
+         */
         function updateReportHeaderText() {
             const reportYear = document.getElementById('reportYear').value;
-            const gradoName = document.getElementById('gradoName').value;
+            // === CAMBIO: Leer del nuevo <select> ===
+            const gradoName = document.getElementById('gradoSelect').value; 
+            // ======================================
             const bimestre = document.getElementById('bimestreSelect').value;
             const totalEstudiantes = document.getElementById('totalEstudiantes').value;
             const reportHeader = document.getElementById('reportHeader');
@@ -362,6 +394,9 @@
             `;
         }
 
+        /**
+         * Función para crear y actualizar la tabla
+         */
         function updateReportTable() {
             const container = document.getElementById('reportTableContainer');
             container.innerHTML = ''; 
@@ -414,6 +449,9 @@
             container.appendChild(table);
         }
         
+        /**
+         * Se ejecuta cuando la página se carga
+         */
         document.addEventListener('DOMContentLoaded', () => {
             
             const acc = document.querySelector(".accordion");
@@ -434,13 +472,18 @@
             updateReportHeaderText();
             updateReportTable(); 
             
+            // === CAMBIO: Escuchar el nuevo <select> con el evento 'change' ===
             document.getElementById('reportYear').addEventListener('input', updateReportHeaderText);
-            document.getElementById('gradoName').addEventListener('input', updateReportHeaderText);
+            document.getElementById('gradoSelect').addEventListener('change', updateReportHeaderText);
             document.getElementById('bimestreSelect').addEventListener('change', updateReportHeaderText);
             document.getElementById('totalEstudiantes').addEventListener('input', updateReportHeaderText);
+            // ==============================================================
         });
 
         
+        /**
+         * Función para añadir datos
+         */
         function addData() {
             const areaName = document.getElementById('areaName').value;
             const inicio = parseInt(document.getElementById('inicioVal').value) || 0;
@@ -474,12 +517,8 @@
         }
         
 
-        // ===================================================================
-        // === FUNCIÓN PDF MODIFICADA (Márgenes más grandes) ===
-        // ===================================================================
         /**
-         * Función para descargar el PDF (Corregida para móviles)
-         * Captura cada elemento por separado para evitar cortes.
+         * Función para descargar el PDF (con márgenes mejorados)
          */
         async function downloadPdf() {
             const { jsPDF } = window.jspdf;
@@ -488,14 +527,11 @@
             alert("Generando PDF... por favor espera un momento.");
 
             try {
-                // --- CAMBIOS AQUÍ ---
-                const imgWidth = 170; // Más pequeño = más margen (A4 es 210mm)
-                const sideMargin = (210 - imgWidth) / 2; // Centra (20mm de margen)
-                const verticalMargin = 15; // Espacio vertical entre elementos
-                let y_position = 25; // Posición Y inicial
-                // ---------------------
+                const imgWidth = 170; // Ancho reducido para más margen
+                const sideMargin = (210 - imgWidth) / 2; // 20mm de margen
+                const verticalMargin = 15;
+                let y_position = 25; 
                 
-                // Título principal del PDF
                 doc.setFontSize(18);
                 doc.text("Reporte de Rendimiento", 105, 15, { align: 'center' }); 
 
@@ -506,7 +542,7 @@
                 const headerHeight = (canvasHeader.height * imgWidth) / canvasHeader.width;
                 
                 doc.addImage(imgDataHeader, 'PNG', sideMargin, y_position, imgWidth, headerHeight);
-                y_position += headerHeight + verticalMargin; // Mover Y hacia abajo
+                y_position += headerHeight + verticalMargin;
 
                 // --- 3. Capturar la Tabla ---
                 const table = document.getElementById('reportTableContainer');
@@ -515,7 +551,7 @@
                 const tableHeight = (canvasTable.height * imgWidth) / canvasTable.width;
                 
                 doc.addImage(imgDataTable, 'PNG', sideMargin, y_position, imgWidth, tableHeight);
-                y_position += tableHeight + verticalMargin; // Mover Y hacia abajo
+                y_position += tableHeight + verticalMargin;
 
                 // --- 4. Capturar el Gráfico ---
                 const chart = document.getElementById('chartAgrupado');
@@ -524,9 +560,9 @@
                 const chartHeight = (canvasChart.height * imgWidth) / canvasChart.width;
 
                 // --- 5. Comprobar si cabe o añadir nueva página ---
-                if (y_position + chartHeight > 297) { // 297mm es el alto de A4
+                if (y_position + chartHeight > 297) { 
                     doc.addPage();
-                    y_position = 20; // Posición Y en la nueva página
+                    y_position = 20;
                 }
 
                 doc.addImage(imgDataChart, 'PNG', sideMargin, y_position, imgWidth, chartHeight);
