@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Reportes</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <style>
+        /* --- Estilos base (Móvil Primero) --- */
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            padding: 10px;
+            background-color: #f9f9f9;
+            color: #333;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 100%;
+        }
+        .controls, .chart-area {
+            width: 100%;
+            box-sizing: border-box; 
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .controls { padding: 0; }
+        .chart-area { padding: 15px; }
+
+        /* --- Estilos de Formulario --- */
+        label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        input[type="text"], input[type="number"], select {
+            padding: 12px;
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 12px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            padding: 12px;
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 12px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+            border: none;
+            font-weight: bold;
+        }
+
+        /* --- Estilos del Acordeón --- */
+        .accordion {
+            background-color: #f1f1f1;
+            color: #333;
+            cursor: pointer;
+            width: 100%;
+            text-align: left;
+            font-size: 18px;
+            transition: 0.4s;
+            border-radius: 8px;
+            margin-bottom: 0;
+            border-bottom: 1px solid #ddd;
+        }
+        .accordion.active {
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+        .accordion:hover { background-color: #ddd; }
+        .panel {
+            padding: 0 18px;
+            background-color: white;
+            max-height: 0;
+            overflow: hidden; 
+            transition: max-height 0.2s ease-out;
+            border-bottom-left-radius: 8px;
+            border-bottom-right-radius: 8px;
+        }
+        .panel.show {
+            padding-top: 15px;
+            padding-bottom: 15px;
+            max-height: 900px;
+        }
+        .accordion h2 {
+            margin: 0;
+            font-size: 1.1em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .accordion span {
+            transition: transform 0.2s;
+            font-size: 0.8em;
+        }
+        .accordion.active span { transform: rotate(180deg); }
+        #addButton {
+            background-color: #007bff;
+            color: white;
+            margin-top: 15px;
+        }
+        #downloadButton {
+            background-color: #28a745;
+            color: white;
+        }
+
+        /* --- Estilos del Título Dinámico --- */
+        #reportHeader {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px dashed #ccc;
+            border-radius: 5px;
+            background-color: #f0f8ff;
+        }
+        #reportHeader h3 {
+            margin: 5px 0;
+            font-size: 1.1em;
+            color: #0056b3;
+        }
+        #reportHeader p {
+            margin: 5px 0;
+            font-size: 0.9em;
+            color: #555;
+        }
+        hr { 
+            border: 0;
+            border-top: 1px solid #eee;
+            margin: 20px 0;
+        }
+        
+        /* === CSS MODIFICADO: ESTILOS PARA LA TABLA INTERACTIVA === */
+        #reportTableContainer {
+            margin: 25px 0;
+            overflow-x: auto; 
+        }
+        .report-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: center;
+            font-size: 0.9em;
+        }
+        .report-table th, .report-table td {
+            border: 1px solid #000;
+            padding: 8px;
+            min-width: 80px;
+        }
+        .report-table thead th {
+            font-weight: bold;
+            vertical-align: middle;
+        }
+        .report-table tbody td:first-child {
+            text-align: left;
+            font-weight: bold;
+            background-color: #f9f9f9;
+        }
+        /* Colores del encabezado principal */
+        .th-inicio { background-color: #dc3545; color: white; }
+        .th-proceso { background-color: #ffc107; color: #333; }
+        .th-logro { background-color: #28a745; color: white; }
+
+        /* Estilo para la celda diagonal */
+        .diag-header {
+            position: relative;
+            padding: 0;
+            width: 150px;
+            min-width: 140px;
+            background-color: #f0f0f0;
+        }
+        .diag-header::after { /* La línea diagonal */
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to top right, 
+                transparent 49.5%, 
+                #000 49.5%, 
+                #000 50.5%, 
+                transparent 50.5%
+            );
+        }
+        .diag-header span {
+            position: relative;
+            z-index: 1;
+            display: block;
+            padding: 5px;
+        }
+        /* === CAMBIO: Texto centrado en celda diagonal === */
+        .diag-top { 
+            text-align: center; /* Centrado */
+            font-weight: normal;
+        }
+        .diag-bottom { 
+            text-align: center; /* Centrado */
+            font-weight: bold;
+        }
+        /* ============================================== */
+
+        /* === NUEVO: Colores para la fila C/B/A y las celdas de datos === */
+        .report-table thead tr:nth-child(2) th:nth-child(2),
+        .report-table tbody td:nth-child(2) {
+            background-color: #fddde0; /* Rojo claro */
+        }
+        .report-table thead tr:nth-child(2) th:nth-child(3),
+        .report-table tbody td:nth-child(3) {
+            background-color: #fff9e3; /* Amarillo claro */
+        }
+        .report-table thead tr:nth-child(2) th:nth-child(4),
+        .report-table tbody td:nth-child(4) {
+            background-color: #e2f0e6; /* Verde claro */
+        }
+        /* ============================================================= */
+        
+        /* --- Estilos del Gráfico --- */
+        .chart-area h2 {
+            text-align: center;
+            font-size: 1.2em;
+        }
+        canvas {
+            max-width: 100%;
+            height: auto;
+        }
+        
+        /* --- Media Query para Desktop --- */
+        @media (min-width: 768px) {
+            .container {
+                flex-direction: row;
+                width: 90%;
+                max-width: 1200px;
+                align-items: flex-start;
+            }
+            .controls { flex: 1; padding: 0; }
+            .chart-area { flex: 2; padding: 25px; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1 style="text-align: center;">Generador de Reportes de Aprendizaje</h1>
+
+    <div class="container">
+        
+        <div class="controls">
+            
+            <button class="accordion active">
+                <h2>Ingresar Datos del Reporte <span>&#9650;</span></h2>
+            </button>
+            
+            <div class="panel show">
+                
+                <label for="reportYear">Año del Reporte:</label>
+                <input type="number" id="reportYear" value="2025" min="2000">
+
+                <label for="gradoName">Grado:</label>
+                <input type="text" id="gradoName" placeholder="Ej: Segundo Grado">
+                
+                <label for="bimestreSelect">Bimestre:</label>
+                <select id="bimestreSelect">
+                    <option value="PRIMER BIMESTRE">PRIMER BIMESTRE</option>
+                    <option value="SEGUNDO BIMESTRE">SEGUNDO BIMESTRE</option>
+                    <option valueA="TERCER BIMESTRE">TERCER BIMESTRE</option>
+                    <option value="CUARTO BIMESTRE">CUARTO BIMESTRE</option>
+                </select>
+
+                <label for="totalEstudiantes">Cantidad de Estudiantes:</label>
+                <input type="number" id="totalEstudiantes" value="18" min="1" style="border-color: #007bff; border-width: 2px;">
+                
+                <hr>
+                <label for="areaName">Nombre del Área:</label>
+                <input type="text" id="areaName" placeholder="Ej: Comunicación">
+                
+                <label for="inicioVal">Inicio (C):</label>
+                <input type="number" id="inicioVal" value="0" min="0">
+                
+                <label for="procesoVal">Proceso (B):</label>
+                <input type="number" id="procesoVal" value="0" min="0">
+                
+                <label for="logroVal">Logro (A):</label>
+                <input type="number" id="logroVal" value="0" min="0">
+                
+                <button id="addButton">Añadir Datos y Generar Gráfico</button>
+                <button id="downloadButton">Descargar Reporte PDF</button>
+
+                <h3>Datos de Áreas Añadidas:</h3>
+                <ul id="dataList" style="padding-left: 20px;">
+                    </ul>
+            </div>
+        </div>
+
+        <div class="chart-area">
+            
+            <div id="reportHeader">
+                </div>
+
+            <div id="reportTableContainer">
+                </div>
+
+            <h2 style="margin-top: 20px;">Resultados de Aprendizaje</h2>
+            <canvas id="chartAgrupado"></canvas>
+            
+        </div>
+    </div>
+
+    <script>
+        let chartAgrupado;
+
+        let chartData = {
+            labels: [],
+            datasets: [
+                {
+                    label: 'Inicio (C)',
+                    data: [],
+                    backgroundColor: '#dc3545' // Rojo
+                },
+                {
+                    label: 'Proceso (B)',
+                    data: [],
+                    backgroundColor: '#ffc107' // Amarillo
+                },
+                {
+                    label: 'Logro (A)',
+                    data: [],
+                    backgroundColor: '#28a745' // Verde
+                }
+            ]
+        };
+
+        // Configuración del gráfico
+        const configAgrupado = {
+            type: 'bar',
+            data: chartData,
+            options: {
+                responsive: true,
+                scales: {
+                    y: { 
+                        beginAtZero: true,
+                        grace: 1 
+                    }
+                },
+                plugins: { legend: { position: 'bottom' } }
+            }
+        };
+
+        /**
+         * Función para actualizar el texto del encabezado del reporte.
+         */
+        function updateReportHeaderText() {
+            const reportYear = document.getElementById('reportYear').value;
+            const gradoName = document.getElementById('gradoName').value;
+            const bimestre = document.getElementById('bimestreSelect').value;
+            const totalEstudiantes = document.getElementById('totalEstudiantes').value;
+            const reportHeader = document.getElementById('reportHeader');
+
+            reportHeader.innerHTML = `
+                <h3>CONSOLIDADO DE LOS LOGROS DE APRENDIZAJE DE LOS ESTUDIANTES DEL ${gradoName || 'GRADO'} - ${reportYear || 'AÑO'}</h3>
+                <p>----- ${bimestre || 'BIMESTRE'} -----</p>
+                <p>Se inició con la cantidad de ${totalEstudiantes || '0'} estudiantes donde se obtuvo los siguientes resultados.</p>
+            `;
+        }
+
+        /**
+         * Función para crear y actualizar la tabla
+         */
+        function updateReportTable() {
+            const container = document.getElementById('reportTableContainer');
+            container.innerHTML = ''; 
+
+            const table = document.createElement('table');
+            table.className = 'report-table';
+
+            // 1. Crear el Encabezado (thead)
+            const thead = document.createElement('thead');
+            
+            // Fila 1 del encabezado
+            const tr1 = document.createElement('tr');
+            tr1.innerHTML = `
+                <th class="diag-header">
+                    <span class="diag-top">NIVEL DE LOGRO</span>
+                    <span class="diag-bottom">AREAS</span>
+                </th>
+                <th class="th-inicio">INICIO</th>
+                <th class="th-proceso">PROCESO</th>
+                <th class="th-logro">LOGRO</th>
+            `;
+            
+            // Fila 2 del encabezado
+            const tr2 = document.createElement('tr');
+            tr2.innerHTML = `
+                <th></th>
+                <th>C</th>
+                <th>B</th>
+                <th>A</th>
+            `;
+            
+            thead.appendChild(tr1);
+            thead.appendChild(tr2);
+            table.appendChild(thead);
+
+            // 2. Crear el Cuerpo (tbody) con los datos
+            const tbody = document.createElement('tbody');
+            
+            if (chartData.labels.length === 0) {
+                const tr = tbody.insertRow();
+                tr.innerHTML = '<td colspan="4">Aún no se han añadido áreas...</td>';
+            } else {
+                for (let i = 0; i < chartData.labels.length; i++) {
+                    const tr = tbody.insertRow();
+                    const area = chartData.labels[i];
+                    const inicio = chartData.datasets[0].data[i];
+                    const proceso = chartData.datasets[1].data[i];
+                    const logro = chartData.datasets[2].data[i];
+                    
+                    tr.innerHTML = `
+                        <td>${area}</td>
+                        <td>${inicio}</td>
+                        <td>${proceso}</td>
+                        <td>${logro}</td>
+                    `;
+                }
+            }
+            
+            table.appendChild(tbody);
+            container.appendChild(table);
+        }
+        
+        /**
+         * Se ejecuta cuando la página se carga
+         */
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            const acc = document.querySelector(".accordion");
+            const panel = document.querySelector(".panel");
+            acc.addEventListener("click", function() {
+                this.classList.toggle("active");
+                panel.classList.toggle("show");
+                const span = this.querySelector("span");
+                span.innerHTML = panel.classList.contains("show") ? "&#9650;" : "&#9660;";
+            });
+
+            const ctxAgrupado = document.getElementById('chartAgrupado').getContext('2d');
+            chartAgrupado = new Chart(ctxAgrupado, configAgrupado);
+            
+            document.getElementById('addButton').addEventListener('click', addData);
+            document.getElementById('downloadButton').addEventListener('click', downloadPdf);
+
+            updateReportHeaderText();
+            updateReportTable(); 
+            
+            document.getElementById('reportYear').addEventListener('input', updateReportHeaderText);
+            document.getElementById('gradoName').addEventListener('input', updateReportHeaderText);
+            document.getElementById('bimestreSelect').addEventListener('change', updateReportHeaderText);
+            document.getElementById('totalEstudiantes').addEventListener('input', updateReportHeaderText);
+        });
+
+        
+        /**
+         * Función para añadir datos
+         */
+        function addData() {
+            const areaName = document.getElementById('areaName').value;
+            const inicio = parseInt(document.getElementById('inicioVal').value) || 0;
+            const proceso = parseInt(document.getElementById('procesoVal').value) || 0;
+            const logro = parseInt(document.getElementById('logroVal').value) || 0;
+
+            if (!areaName) {
+                alert('Por favor, ingresa un Nombre del Área.');
+                return;
+            }
+
+            chartData.labels.push(areaName);
+            chartData.datasets[0].data.push(inicio);
+            chartData.datasets[1].data.push(proceso);
+            chartData.datasets[2].data.push(logro);
+
+            chartAgrupado.update();
+            updateReportTable(); // Actualiza la tabla
+            updateReportHeaderText(); 
+
+            const dataList = document.getElementById('dataList');
+            const listItem = document.createElement('li');
+            listItem.textContent = `${areaName}: (C=${inicio}, B=${proceso}, A=${logro})`;
+            dataList.appendChild(listItem);
+
+            document.getElementById('areaName').value = '';
+            document.getElementById('inicioVal').value = '0';
+            document.getElementById('procesoVal').value = '0';
+            document.getElementById('logroVal').value = '0';
+            document.getElementById('areaName').focus();
+        }
+        
+
+        /**
+         * Función para descargar el PDF
+         */
+        async function downloadPdf() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('portrait', 'mm', 'a4');
+            
+            alert("Generando PDF... por favor espera un momento.");
+
+            try {
+                const chartAreaElement = document.querySelector('.chart-area');
+                
+                const canvas = await html2canvas(chartAreaElement, {
+                    scale: 2 
+                });
+                const imgData = canvas.toDataURL('image/png');
+
+                const imgWidth = 190;
+                const imgHeight = canvas.height * imgWidth / canvas.width;
+                
+                doc.setFontSize(18);
+                doc.text("Reporte de Rendimiento", 105, 15, { align: 'center' }); 
+                
+                doc.addImage(imgData, 'PNG', 10, 25, imgWidth, imgHeight);
+                
+                doc.save('reporte_rendimiento.pdf');
+
+            } catch (error) {
+                console.error("Error al generar el PDF:", error);
+                alert("Hubo un error al generar el PDF.");
+            }
+        }
+    </script>
+
+</body>
+</html>
