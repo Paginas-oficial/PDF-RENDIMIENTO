@@ -49,7 +49,6 @@
             font-size: 16px;
             border: 1px solid #ccc;
             border-radius: 5px;
-            /* Apariencia nativa */
             -webkit-appearance: none;
             -moz-appearance: none;
             appearance: none;
@@ -60,7 +59,7 @@
             background-repeat: no-repeat;
             background-position: right 1rem center;
             background-size: 0.65em auto;
-            padding-right: 2.5rem; /* Espacio para la flecha */
+            padding-right: 2.5rem;
         }
         
         button {
@@ -129,23 +128,23 @@
             color: white;
         }
 
-        /* --- Estilos del Título Dinámico --- */
+        /* --- CAMBIO: Estilos del Título Dinámico (más pequeño) --- */
         #reportHeader {
             text-align: center;
-            margin-bottom: 20px;
-            padding: 10px;
+            margin-bottom: 15px;
+            padding: 8px;
             border: 1px dashed #ccc;
             border-radius: 5px;
             background-color: #f0f8ff;
         }
         #reportHeader h3 {
             margin: 5px 0;
-            font-size: 1.1em;
+            font-size: 0.9em; /* Reducido */
             color: #0056b3;
         }
         #reportHeader p {
             margin: 5px 0;
-            font-size: 0.9em;
+            font-size: 0.8em; /* Reducido */
             color: #555;
         }
         hr { 
@@ -154,21 +153,21 @@
             margin: 20px 0;
         }
         
-        /* --- Estilos para la Tabla Interactiva --- */
+        /* --- CAMBIO: Estilos para la Tabla Interactiva (más pequeña) --- */
         #reportTableContainer {
-            margin: 25px 0;
+            margin: 15px 0;
             overflow-x: auto; 
         }
         .report-table {
             width: 100%;
             border-collapse: collapse;
             text-align: center;
-            font-size: 0.9em;
+            font-size: 0.8em; /* Reducido */
         }
         .report-table th, .report-table td {
             border: 1px solid #000;
-            padding: 8px;
-            min-width: 80px;
+            padding: 4px; /* Reducido */
+            min-width: 60px; /* Reducido */
         }
         .report-table thead th {
             font-weight: bold;
@@ -186,8 +185,8 @@
         .diag-header {
             position: relative;
             padding: 0;
-            width: 150px;
-            min-width: 140px;
+            width: 110px; /* Reducido */
+            min-width: 100px; /* Reducido */
             background-color: #f0f0f0;
         }
         .diag-header::after {
@@ -221,21 +220,22 @@
         
         .report-table thead tr:nth-child(2) th:nth-child(2),
         .report-table tbody td:nth-child(2) {
-            background-color: #fddde0; /* Rojo claro */
+            background-color: #fddde0;
         }
         .report-table thead tr:nth-child(2) th:nth-child(3),
         .report-table tbody td:nth-child(3) {
-            background-color: #fff9e3; /* Amarillo claro */
+            background-color: #fff9e3;
         }
         .report-table thead tr:nth-child(2) th:nth-child(4),
         .report-table tbody td:nth-child(4) {
-            background-color: #e2f0e6; /* Verde claro */
+            background-color: #e2f0e6;
         }
         
-        /* --- Estilos del Gráfico --- */
+        /* --- CAMBIO: Estilos del Gráfico (título más pequeño) --- */
         .chart-area h2 {
             text-align: center;
-            font-size: 1.2em;
+            font-size: 1.0em; /* Reducido */
+            margin-top: 15px;
         }
         canvas {
             max-width: 100%;
@@ -281,6 +281,7 @@
                     <option value="QUINTO GRADO">QUINTO GRADO</option>
                     <option value="SEXTO GRADO">SEXTO GRADO</option>
                 </select>
+                
                 <label for="bimestreSelect">Bimestre:</label>
                 <select id="bimestreSelect">
                     <option value="PRIMER BIMESTRE">PRIMER BIMESTRE</option>
@@ -322,7 +323,7 @@
             <div id="reportTableContainer">
                 </div>
 
-            <h2 style="margin-top: 20px;">Resultados de Aprendizaje por Área</h2>
+            <h2>Resultados de Aprendizaje por Área</h2>
             <canvas id="chartAgrupado"></canvas>
             
         </div>
@@ -364,14 +365,12 @@
                         grace: 1 
                     }
                 },
-                // === CAMBIO: Desactivar la "burbuja" (tooltip) ===
                 plugins: { 
                     legend: { position: 'bottom' },
                     tooltip: {
-                        enabled: false // <-- AÑADIDO
+                        enabled: false // Tooltip desactivado
                     }
                 }
-                // ===============================================
             }
         };
 
@@ -380,9 +379,7 @@
          */
         function updateReportHeaderText() {
             const reportYear = document.getElementById('reportYear').value;
-            // === CAMBIO: Leer del nuevo <select> ===
             const gradoName = document.getElementById('gradoSelect').value; 
-            // ======================================
             const bimestre = document.getElementById('bimestreSelect').value;
             const totalEstudiantes = document.getElementById('totalEstudiantes').value;
             const reportHeader = document.getElementById('reportHeader');
@@ -472,12 +469,10 @@
             updateReportHeaderText();
             updateReportTable(); 
             
-            // === CAMBIO: Escuchar el nuevo <select> con el evento 'change' ===
             document.getElementById('reportYear').addEventListener('input', updateReportHeaderText);
             document.getElementById('gradoSelect').addEventListener('change', updateReportHeaderText);
             document.getElementById('bimestreSelect').addEventListener('change', updateReportHeaderText);
             document.getElementById('totalEstudiantes').addEventListener('input', updateReportHeaderText);
-            // ==============================================================
         });
 
         
@@ -517,8 +512,12 @@
         }
         
 
+        // ===================================================================
+        // === FUNCIÓN PDF MODIFICADA (Compacta y en 1 página) ===
+        // ===================================================================
         /**
-         * Función para descargar el PDF (con márgenes mejorados)
+         * Función para descargar el PDF
+         * Captura cada elemento por separado y los fuerza en una página.
          */
         async function downloadPdf() {
             const { jsPDF } = window.jspdf;
@@ -527,10 +526,11 @@
             alert("Generando PDF... por favor espera un momento.");
 
             try {
-                const imgWidth = 170; // Ancho reducido para más margen
-                const sideMargin = (210 - imgWidth) / 2; // 20mm de margen
-                const verticalMargin = 15;
-                let y_position = 25; 
+                // Ancho de imagen más pequeño para márgenes
+                const imgWidth = 170; 
+                const sideMargin = (210 - imgWidth) / 2; // Margen de 20mm
+                const verticalMargin = 8; // Margen vertical reducido
+                let y_position = 20; // Posición Y inicial más alta
                 
                 doc.setFontSize(18);
                 doc.text("Reporte de Rendimiento", 105, 15, { align: 'center' }); 
@@ -559,12 +559,10 @@
                 const imgDataChart = canvasChart.toDataURL('image/png');
                 const chartHeight = (canvasChart.height * imgWidth) / canvasChart.width;
 
-                // --- 5. Comprobar si cabe o añadir nueva página ---
-                if (y_position + chartHeight > 297) { 
-                    doc.addPage();
-                    y_position = 20;
-                }
-
+                // --- 5. ELIMINADO EL SALTO DE PÁGINA ---
+                // Se fuerza a que se imprima en la página 1, incluso si se corta
+                // (Pero con los tamaños reducidos, debería caber)
+                
                 doc.addImage(imgDataChart, 'PNG', sideMargin, y_position, imgWidth, chartHeight);
                 
                 // --- 6. Guardar ---
